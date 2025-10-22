@@ -1,0 +1,80 @@
+import greenfoot.*;
+public class Platform extends Actor
+{
+    private int lastX;
+    private int lastY;
+    private boolean firstAct = true;
+    
+    public void act()
+    {
+        if (firstAct)
+        {
+            lastX = getX();
+            lastY = getY();
+            firstAct = false;
+        }
+        else
+        {
+            pushPerson();
+            lastX = getX();
+            lastY = getY();
+        }
+    }
+    
+    private void pushPerson()
+    {
+        int deltaX = getX() - lastX;
+        int deltaY = getY() - lastY;
+        
+        if (deltaX == 0 && deltaY == 0)
+        {
+            return; // Platform didn't move
+        }
+        
+        // Find any person touching this platform
+        java.util.List<Person> persons = getIntersectingObjects(Person.class);
+        
+        for (Person person : persons)
+        {
+            // Calculate if person is standing on top of platform
+            int personBottom = person.getY() + person.getImage().getHeight() / 2;
+            int platformTop = getY() - getImage().getHeight() / 2;
+            
+            // Check if person's bottom is near the platform's top (standing on it)
+            // Allow a small margin for pixel-perfect collision
+            if (Math.abs(personBottom - platformTop) <= 15 && personBottom <= platformTop + 5)
+            {
+                // Person is on top - push them horizontally always
+                // Only push vertically if moving UP (not down)
+                if (deltaY < 0)
+                {
+                    // Moving up - push both horizontally and vertically
+                    person.setLocation(person.getX() + deltaX, person.getY() + deltaY);
+                }
+                else
+                {
+                    // Moving down or no vertical movement - only push horizontally
+                    person.setLocation(person.getX() + deltaX, person.getY());
+                }
+            }
+            // If platform is moving down and person is below the top, don't push
+            else if (deltaY > 0 && personBottom > platformTop)
+            {
+                // Don't push - person will be handled by their own collision detection
+                continue;
+            }
+            // For horizontal movement, push if they're roughly at platform height
+            else if (deltaX != 0 && deltaY == 0)
+            {
+                person.setLocation(person.getX() + deltaX, person.getY());
+            }
+        }
+    }
+    
+    public Platform(int width, int height)
+    {
+        GreenfootImage img = new GreenfootImage("peach.png");
+        img.scale(width, height);
+        setImage(img);
+    }
+}

@@ -1,0 +1,262 @@
+import greenfoot.*;
+
+public class Person extends Actor
+{
+    private boolean onGround = false;
+    private int jumpStrength = -12;
+    private int gravity = 1;
+    private int vSpeed = 0;
+    private int moveSpeed = 3;
+    private int airSpeed = 2;
+    private Platform lastPlatform = null;
+    private int lastPlatformX = 0;
+    private int lastPlatformY = 0;
+    
+    public void act()
+    {
+        checkPlatformPush();
+        keyChecker();
+        fall();
+        collision();
+        checkFallOff();
+        nextLevel();
+    }
+    
+    private void checkPlatformPush()
+    {
+        Platform currentPlatform = (Platform) getOneIntersectingObject(Platform.class);
+        
+        if (currentPlatform != null && onGround)
+        {
+            // If we're on a platform, check if it moved
+            if (lastPlatform == currentPlatform)
+            {
+                int deltaX = currentPlatform.getX() - lastPlatformX;
+                int deltaY = currentPlatform.getY() - lastPlatformY;
+                
+                // Push the person by the platform's movement
+                if (deltaX != 0 || deltaY != 0)
+                {
+                    setLocation(getX() + deltaX, getY() + deltaY);
+                }
+            }
+            
+            // Update last platform position
+            lastPlatform = currentPlatform;
+            lastPlatformX = currentPlatform.getX();
+            lastPlatformY = currentPlatform.getY();
+        }
+        else
+        {
+            // Not on a platform anymore
+            lastPlatform = null;
+        }
+    }
+    
+    private void keyChecker()
+    {
+        if (Greenfoot.isKeyDown("a"))
+        {
+            int speed = onGround ? moveSpeed : airSpeed;
+            
+            // Move pixel by pixel to check collision
+            for (int i = 0; i < speed; i++)
+            {
+                setLocation(getX() - 1, getY());
+                if (isTouchingPlatform())
+                {
+                    setLocation(getX() + 1, getY());
+                    break;
+                }
+            }
+        }
+        if (Greenfoot.isKeyDown("d"))
+        {
+            int speed = onGround ? moveSpeed : airSpeed;
+            
+            // Move pixel by pixel to check collision
+            for (int i = 0; i < speed; i++)
+            {
+                setLocation(getX() + 1, getY());
+                if (isTouchingPlatform())
+                {
+                    setLocation(getX() - 1, getY());
+                    break;
+                }
+            }
+        }
+        if (Greenfoot.isKeyDown("space") && onGround)
+        {
+            jump();
+        }
+    }
+    
+    private void jump()
+    {
+        vSpeed = jumpStrength;
+        onGround = false;
+        setLocation(getX(), getY() + vSpeed);
+    }
+    
+    private void fall()
+    {
+        // Apply gravity
+        if (vSpeed < 9)
+        {
+            vSpeed = vSpeed + gravity;
+        }
+        
+        // Move vertically pixel by pixel to prevent penetration
+        int steps = Math.abs(vSpeed);
+        int sign = vSpeed > 0 ? 1 : -1;
+        
+        for (int i = 0; i < steps; i++)
+        {
+            setLocation(getX(), getY() + sign);
+            
+            // Check for collision after each pixel movement
+            if (isTouchingPlatform())
+            {
+                // Move back one pixel
+                setLocation(getX(), getY() - sign);
+                
+                if (vSpeed > 0) // Was falling down
+                {
+                    onGround = true;
+                    vSpeed = 0;
+                }
+                else // Was moving up (hit ceiling)
+                {
+                    vSpeed = 0;
+                }
+                return;
+            }
+        }
+        
+        // If we didn't hit anything, we're in the air
+        onGround = false;
+    }
+    
+    // Check if touching platform with precise collision detection
+    private boolean isTouchingPlatform()
+    {
+        // First do a quick check with getIntersectingObjects
+        java.util.List<Platform> platforms = getIntersectingObjects(Platform.class);
+        if (platforms.isEmpty())
+        {
+            return false;
+        }
+        
+        // If intersecting, do pixel-perfect collision check
+        for (Platform platform : platforms)
+        {
+            if (pixelPerfectCollision(platform))
+            {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    // Pixel-perfect collision detection
+    private boolean pixelPerfectCollision(Platform platform)
+    {
+        GreenfootImage personImg = getImage();
+        GreenfootImage platImg = platform.getImage();
+        
+        int dx = getX() - platform.getX();
+        int dy = getY() - platform.getY();
+        
+        int personW = personImg.getWidth();
+        int personH = personImg.getHeight();
+        int platW = platImg.getWidth();
+        int platH = platImg.getHeight();
+        
+        // Check a sample of pixels (not all, for performance)
+        for (int x = 0; x < personW; x += 2)
+        {
+            for (int y = 0; y < personH; y += 2)
+            {
+                int platX = x - personW / 2 - dx + platW / 2;
+                int platY = y - personH / 2 - dy + platH / 2;
+                
+                if (platX >= 0 && platX < platW && platY >= 0 && platY < platH)
+                {
+                    if (personImg.getColorAt(x, y).getAlpha() > 0 &&
+                        platImg.getColorAt(platX, platY).getAlpha() > 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        return false;
+    }
+    
+    // Check if there's a platform blocking horizontal movement
+    private boolean isBlockedHorizontally(int direction)
+    {
+        int height = getImage().getHeight();
+        int width = getImage().getWidth();
+        int checkDistance = width / 2 + 1;
+        
+        // Check left or right side at multiple heights
+        if (getOneObjectAtOffset(checkDistance * direction, 0, Platform.class) != null) return true;
+        if (getOneObjectAtOffset(checkDistance * direction, -height / 3, Platform.class) != null) return true;
+        if (getOneObjectAtOffset(checkDistance * direction, height / 3, Platform.class) != null) return true;
+        
+        return false;
+    }
+    
+    public void nextLevel()
+    {
+        if (getX() >= 749)
+        {
+            Greenfoot.setWorld(new easyLevel2());
+        }
+    }
+    
+    private void checkFallOff()
+    {
+        Platform platform = (Platform) getOneObjectAtOffset(0, 0, Platform.class);
+        if (platform == null && getY() > 350)
+        {
+            Greenfoot.setWorld(new MyWorld());
+        }
+    }
+    
+    public void collision()
+    {
+        java.util.List<Spike> spikes = getIntersectingObjects(Spike.class);
+        
+        for (Spike spike : spikes)
+        {
+            GreenfootImage spikeImg = spike.getImage();
+            GreenfootImage personImg = getImage();
+            int dx = getX() - spike.getX();
+            int dy = getY() - spike.getY();
+            
+            for (int x = 0; x < personImg.getWidth(); x++)
+            {
+                for (int y = 0; y < personImg.getHeight(); y++)
+                {
+                    int spikeX = x - personImg.getWidth() / 2 - dx + spikeImg.getWidth() / 2;
+                    int spikeY = y - personImg.getHeight() / 2 - dy + spikeImg.getHeight() / 2;
+                    
+                    if (spikeX >= 0 && spikeX < spikeImg.getWidth() &&
+                        spikeY >= 0 && spikeY < spikeImg.getHeight())
+                    {
+                        if (personImg.getColorAt(x, y).getAlpha() > 0 &&
+                            spikeImg.getColorAt(spikeX, spikeY).getAlpha() > 0)
+                        {
+                            Greenfoot.setWorld(new MyWorld());
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

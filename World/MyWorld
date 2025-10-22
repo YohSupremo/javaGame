@@ -1,0 +1,73 @@
+import greenfoot.*;  // (World, Actor, GreenfootImage, Greenfoot and MouseInfo)
+
+/**
+ * Write a description of class MyWorld here.
+ * 
+ * @author (your name) 
+ * @version (a version number or a date)
+ */
+public class MyWorld extends World
+{
+    // Spike spawning variables
+    private boolean spikeSpawned = false;
+    private int spikeCount = 0; 
+    private int spikeX = 358;
+    private int spawnDelay = 2;  // 60 acts ≈ 1 second
+    private int spawnTimer = 0;
+    
+    /**
+     * Constructor for objects of class MyWorld.
+     * 
+     */
+    public MyWorld()
+    {    
+        // Create a new world with 600x400 cells with a cell size of 1x1 pixels.
+        super(750, 400, 1); 
+        prepare();
+    }
+    
+    public void prepare(){
+        Platform p  = new Platform(610, 100);
+        addObject(p, 310, 350);
+        Person player1 = new Person();
+        addObject(player1, 30, 280);
+        Spike spike = new Spike();
+        PlatformTrap pT = new PlatformTrap();
+        addObject(pT, 650, 350);
+        Platform p2  = new Platform(140,100);
+        addObject(p2, 1000, 350);
+    }
+    
+    public void act() {
+        handleSpikeSpawning();
+    }
+    
+    private void handleSpikeSpawning() {
+        // Get the player
+        java.util.List<Person> players = getObjects(Person.class);
+        if (players.isEmpty()) {
+            return; // No player in world
+        }
+        
+        Person player = players.get(0);
+        int playerX = player.getX();
+        
+        // First spike trigger
+        if (playerX >= 290 && !spikeSpawned) {
+            addObject(new Spike(), 350, 292);
+            spikeSpawned = true;
+            spikeCount = 1; // First spike already spawned
+        }
+
+        // Timed spawning of next spikes
+        if (spikeSpawned && spikeCount < 40 && playerX >= 408) {
+            spawnTimer++;
+            if (spawnTimer >= spawnDelay) {  // Spawns every 2 acts
+                addObject(new Spike(), spikeX, 292);
+                spikeX += 6;
+                spawnTimer = 0;
+                spikeCount++;
+            }
+        }
+    }
+}
