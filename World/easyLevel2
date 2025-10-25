@@ -52,7 +52,7 @@ public class easyLevel2 extends World
        int playerX = player.getX();
        storeX = playerX;
         
-        if (spikeCount < 40 && playerX >= 90) {
+        if (spikeCount < 40 && playerX >= 95) {
             spawnTimer++;
             if (spawnTimer >= spawnDelay){
                 addObject(new Spike(), spikeX, 292);

@@ -19,7 +19,7 @@ public class Spike extends Actor
     
     public Spike(){
         GreenfootImage img = new GreenfootImage("spikeF.png");
-        img.scale(20,15);
+        img.scale(30,15);
         setImage(img);
     }
     

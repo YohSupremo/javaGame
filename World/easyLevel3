@@ -39,7 +39,7 @@ public class easyLevel3 extends World
         addObject(p1, 435,350);
         p2 = new Platform(75,100);
         addObject (p2, 510, 350);
-        p2.getImage().setTransparency(0);
+        p2.getImage().setTransparency(1);
       
       
         
@@ -64,7 +64,7 @@ public class easyLevel3 extends World
         Person player = players.get(0);
         playerX = player.getX();
         
-        if (playerX >= 429) {
+        if (playerX >= 410) {
            moveBlock = true;
         }
         
@@ -98,7 +98,7 @@ public class easyLevel3 extends World
             
           if (p2.getImage().getTransparency() < 250) {
                 p2.getImage().setTransparency(transparency);
-                transparency+=10;
+                transparency+=50;
           }
                 
           
@@ -121,10 +121,12 @@ public class easyLevel3 extends World
     
     public void spikeChain() {
          if (p1.getY() >= 399) {
+           
             Spike sp1 = new Spike();
             addObject(sp1, 423, 343);
             Spike sp2 = new Spike();
             addObject(sp2, 442, 343);
+         
             spikeAppeared = true;
         }
         
@@ -139,13 +141,13 @@ public class easyLevel3 extends World
         } 
         
         
-            if (playerX >= 503 && p3 != null){
+            if (playerX >= 505 && p3 != null){
                 moveBlock2 = true;
             }
             
             if (moveBlock2 && !push && p3 != null && !goingDown) {
                
-                p3.setLocation(p3.getX(), p3.getY() - 2);
+                p3.setLocation(p3.getX(), p3.getY() - 10);
                 if(p3.getY() <= 250) {
                     push = true;
                 
@@ -153,7 +155,7 @@ public class easyLevel3 extends World
             }
             
             if (push) {
-                p3.setLocation(p3.getX() + 3, p3.getY());
+                p3.setLocation(p3.getX() + 10, p3.getY());
             }
             
          if(p3 != null) {
@@ -164,12 +166,13 @@ public class easyLevel3 extends World
             }
     
           if(goingDown){
-                 p3.setLocation(p3.getX(), p3.getY() + 2);
+                 p3.setLocation(p3.getX(), p3.getY() + 10);
                  if(p3.getY() >= 399) {
                      wentDown = true;
                        Platform p4 = new Platform(170, 100);
                        addObject(p4, 670, 350);
                        goingDown = false;
+                       
                  }
                  
           }

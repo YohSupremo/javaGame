@@ -89,11 +89,11 @@ public class easyLevel4 extends World
             pushPerson2 = true;        
         }
         
-        if (pushPerson2 && pushingPF.getY() <= 280 && pushingPF.getX() > 163) {
-            pushingPF.setLocation(pushingPF.getX() - 2, pushingPF.getY());
+        if (pushPerson2 && pushingPF.getY() <= 280 && pushingPF.getX() >= 167) {
+            pushingPF.setLocation(pushingPF.getX() - 5, pushingPF.getY());
         }  
         
-        if  (pushingPF.getX() <= 162) {
+        if  (pushingPF.getX() <= 166) {
             pushingPF.setLocation(pushingPF.getX(), pushingPF.getY() + 20);
         }
         
@@ -110,12 +110,12 @@ public class easyLevel4 extends World
             
         }
         
-        if(pushPerson4 && pushingPF2.getY() <= 280 && pushingPF2.getX() < 332){
+        if(pushPerson4 && pushingPF2.getY() <= 280 && pushingPF2.getX() < 330){
             pushingPF2.setLocation(pushingPF2.getX() + 10, pushingPF2.getY());
            
         }
         
-        if(pushingPF2.getX() >= 331) {
+        if(pushingPF2.getX() >= 329) {
             pushingPF2.setLocation(pushingPF2.getX(), pushingPF2.getY() + 10);
              spikeAppear = true;
              if(!fake3Appear){
@@ -129,15 +129,11 @@ public class easyLevel4 extends World
             Spike sp = new Spike();
             addObject(sp, 280, 295);
             Spike sp2 = new Spike();
-            addObject(sp2, 270, 295);
+            addObject(sp2, 299, 295);
             Spike sp3 = new Spike();
-            addObject(sp3, 290, 295);
-            Spike sp4 = new Spike();
-            addObject(sp4, 300, 295);
-            Spike sp5 = new Spike();
-            addObject(sp5, 310, 295);
-            Spike sp6 = new Spike();
-            addObject(sp6, 320, 295);
+            addObject(sp3, 318, 295);
+         
+            
         }
         
         if(spikeAppear && playerX <= 352) {
@@ -146,7 +142,7 @@ public class easyLevel4 extends World
            //430
         }
       
-        if (spikeCount < 53 &&  playerX >= 430) {
+        if (spikeCount < 53 &&  playerX >= 435) {
             spawnTimer++;
             if (spawnTimer >= spawnDelay){
                 addObject(new Spike(), spikeX, 292);

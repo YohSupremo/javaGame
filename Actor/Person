@@ -2,24 +2,169 @@ import greenfoot.*;
 
 public class Person extends Actor
 {
+    // Animation variables
+    private GreenfootImage[] idleFrames;
+    private GreenfootImage[] runFrames;
+    private GreenfootImage[] jumpFrames;
+    private int frameIndex = 0;
+    private int delayCounter = 0;
+    private int animationDelay = 5;
+    private boolean facingRight = true;
+    private boolean isRunning = false;
+    
+    // Physics variables
     private boolean onGround = false;
-    private int jumpStrength = -12;
+    private int jumpStrength = -15;
     private int gravity = 1;
     private int vSpeed = 0;
     private int moveSpeed = 3;
     private int airSpeed = 2;
+    
+    // Platform tracking for moving platforms
     private Platform lastPlatform = null;
     private int lastPlatformX = 0;
     private int lastPlatformY = 0;
     
+    public Person() {
+        // Load IDLE frames (idle (1).png to idle (12).png)
+        idleFrames = new GreenfootImage[12];
+        for (int i = 0; i < idleFrames.length; i++) {
+            String filename = "idle (" + (i + 1) + ").png";
+            idleFrames[i] = new GreenfootImage(filename);
+        }
+        // Load RUN frames (run (1).png to run (8).png)
+        runFrames = new GreenfootImage[8];
+        for (int i = 0; i < runFrames.length; i++) {
+            String filename = "run (" + (i + 1) + ").png";
+            runFrames[i] = new GreenfootImage(filename);
+        }
+        // Load JUMP frames (jump (1).png to jump (4).png)
+        jumpFrames = new GreenfootImage[4];
+        for (int i = 0; i < jumpFrames.length; i++) {
+            String filename = "jump (" + (i + 1) + ").png";
+            jumpFrames[i] = new GreenfootImage(filename);
+        }
+        setImage(idleFrames[0]); // Start idle
+    }
+    
     public void act()
     {
         checkPlatformPush();
-        keyChecker();
-        fall();
-        collision();
+        handleMovement();
+        correctPlatformPenetration(); // Correct after horizontal movement
+        ensureFullyOutsidePlatforms(); // Check BEFORE gravity to catch corner penetration
+        applyGravity();
+        checkSpikesAndTraps();
         checkFallOff();
         nextLevel();
+        animate();
+    }
+    
+    // NEW METHOD: Ensures player is fully outside all platforms (prevents corner penetration)
+    private void ensureFullyOutsidePlatforms()
+    {
+        // Only run this check when in the air to prevent corner penetration during jumps
+        // Don't run when on ground to avoid bouncing
+        if (onGround)
+        {
+            return;
+        }
+        
+        java.util.List<Platform> platforms = getIntersectingObjects(Platform.class);
+        
+        for (Platform platform : platforms)
+        {
+            if (pixelPerfectCollision(platform.getImage(), platform))
+            {
+                // Calculate boundaries
+                int personLeft = getX() - getImage().getWidth() / 2;
+                int personRight = getX() + getImage().getWidth() / 2;
+                int personTop = getY() - getImage().getHeight() / 2;
+                int personBottom = getY() + getImage().getHeight() / 2;
+                
+                int platformLeft = platform.getX() - platform.getImage().getWidth() / 2;
+                int platformRight = platform.getX() + platform.getImage().getWidth() / 2;
+                int platformTop = platform.getY() - platform.getImage().getHeight() / 2;
+                int platformBottom = platform.getY() + platform.getImage().getHeight() / 2;
+                
+                // Calculate penetration depths
+                int penetrationLeft = personRight - platformLeft;
+                int penetrationRight = platformRight - personLeft;
+                int penetrationTop = personBottom - platformTop;
+                int penetrationBottom = platformBottom - personTop;
+                
+                // Find smallest penetration to determine best push direction
+                int minPenetration = Math.min(Math.min(penetrationLeft, penetrationRight),
+                                             Math.min(penetrationTop, penetrationBottom));
+                
+                // Only correct if penetration is significant (more than 3 pixels)
+                if (minPenetration <= 3)
+                {
+                    continue;
+                }
+                
+                // Push out in the direction of smallest penetration
+                if (minPenetration == penetrationLeft && penetrationLeft > 0)
+                {
+                    // Push left
+                    setLocation(platformLeft - getImage().getWidth() / 2, getY());
+                }
+                else if (minPenetration == penetrationRight && penetrationRight > 0)
+                {
+                    // Push right
+                    setLocation(platformRight + getImage().getWidth() / 2, getY());
+                }
+                else if (minPenetration == penetrationTop && penetrationTop > 0)
+                {
+                    // Push up
+                    setLocation(getX(), platformTop - getImage().getHeight() / 2);
+                }
+                else if (minPenetration == penetrationBottom && penetrationBottom > 0)
+                {
+                    // Push down (hit ceiling)
+                    setLocation(getX(), platformBottom + getImage().getHeight() / 2);
+                    vSpeed = 0;
+                }
+            }
+        }
+    }
+    
+    // Corrects position if player has penetrated into a platform
+    private void correctPlatformPenetration()
+    {
+        // Only run this if we're moving horizontally AND on the ground
+        if (!isRunning || !onGround) return;
+        
+        java.util.List<Platform> platforms = getIntersectingObjects(Platform.class);
+        
+        for (Platform platform : platforms)
+        {
+            if (pixelPerfectCollisionForMovement(platform.getImage(), platform))
+            {
+                // Calculate boundaries
+                int personLeft = getX() - getImage().getWidth() / 2;
+                int personRight = getX() + getImage().getWidth() / 2;
+                
+                int platformLeft = platform.getX() - platform.getImage().getWidth() / 2;
+                int platformRight = platform.getX() + platform.getImage().getWidth() / 2;
+                
+                // Calculate horizontal penetration
+                int penetrationLeft = personRight - platformLeft;
+                int penetrationRight = platformRight - personLeft;
+                
+                // Push out horizontally based on which side we're closer to
+                if (penetrationLeft < penetrationRight && penetrationLeft > 0)
+                {
+                    // Push left (hit right side of wall)
+                    setLocation(platformLeft - getImage().getWidth() / 2, getY());
+                }
+                else if (penetrationRight > 0)
+                {
+                    // Push right (hit left side of wall)
+                    setLocation(platformRight + getImage().getWidth() / 2, getY());
+                }
+            }
+        }
     }
     
     private void checkPlatformPush()
@@ -53,52 +198,111 @@ public class Person extends Actor
         }
     }
     
-    private void keyChecker()
-    {
-        if (Greenfoot.isKeyDown("a"))
-        {
-            int speed = onGround ? moveSpeed : airSpeed;
-            
-            // Move pixel by pixel to check collision
-            for (int i = 0; i < speed; i++)
-            {
-                setLocation(getX() - 1, getY());
-                if (isTouchingPlatform())
-                {
-                    setLocation(getX() + 1, getY());
-                    break;
+   private void handleMovement() {
+    isRunning = false;
+    int speed = onGround ? moveSpeed : airSpeed;
+
+    // If world is mediumLevel1 → reverse controls
+    if (getWorld() instanceof mediumLevel1) {
+        // REVERSED CONTROLS
+        if (Greenfoot.isKeyDown("a")) { // A goes RIGHT
+            facingRight = true;
+            isRunning = true;
+            setLocation(getX() + speed, getY());
+        }
+        else if (Greenfoot.isKeyDown("d")) { // D goes LEFT
+            facingRight = false;
+            isRunning = true;
+            setLocation(getX() - speed, getY());
+        }
+    } 
+    // Else → normal controls (easyLevel worlds)
+    else {
+        // NORMAL CONTROLS
+        if (Greenfoot.isKeyDown("a")) { // Left
+            facingRight = false;
+            isRunning = true;
+            setLocation(getX() - speed, getY());
+        }
+        else if (Greenfoot.isKeyDown("d")) { // Right
+            facingRight = true;
+            isRunning = true;
+            setLocation(getX() + speed, getY());
+        }
+    }
+
+    // Jump stays the same
+    if ((Greenfoot.isKeyDown("space") || Greenfoot.isKeyDown("w")) && onGround) {
+        jump();
+    }
+}
+
+    
+    // Check if the character can move to a specific position
+    private boolean canMoveTo(int x, int y) {
+        int originalX = getX();
+        int originalY = getY();
+        
+        setLocation(x, y);
+        boolean canMove = !isTouchingPlatformForHorizontalMovement();
+        setLocation(originalX, originalY);
+        
+        return canMove;
+    }
+    
+    // Special collision check for horizontal movement (only checks bottom part of character)
+    private boolean isTouchingPlatformForHorizontalMovement() {
+        java.util.List<Platform> platforms = getIntersectingObjects(Platform.class);
+        if (!platforms.isEmpty()) {
+            for (Platform platform : platforms) {
+                if (pixelPerfectCollisionForMovement(platform.getImage(), platform)) {
+                    return true;
                 }
             }
         }
-        if (Greenfoot.isKeyDown("d"))
-        {
-            int speed = onGround ? moveSpeed : airSpeed;
-            
-            // Move pixel by pixel to check collision
-            for (int i = 0; i < speed; i++)
-            {
-                setLocation(getX() + 1, getY());
-                if (isTouchingPlatform())
-                {
-                    setLocation(getX() - 1, getY());
-                    break;
+        
+        return false;
+    }
+    
+    // Pixel-perfect collision detection for horizontal movement (only checks bottom 1/3 of character)
+    private boolean pixelPerfectCollisionForMovement(GreenfootImage otherImg, Actor other) {
+        GreenfootImage personImg = getImage();
+        
+        int dx = getX() - other.getX();
+        int dy = getY() - other.getY();
+        
+        int personW = personImg.getWidth();
+        int personH = personImg.getHeight();
+        int otherW = otherImg.getWidth();
+        int otherH = otherImg.getHeight();
+        
+        // Only check the bottom 1/3 of the character for horizontal movement
+        int startY = personH * 2 / 3;
+        
+        for (int x = 0; x < personW; x++) {
+            for (int y = startY; y < personH; y++) {
+                int otherX = x - personW / 2 - dx + otherW / 2;
+                int otherY = y - personH / 2 - dy + otherH / 2;
+                
+                if (otherX >= 0 && otherX < otherW && otherY >= 0 && otherY < otherH) {
+                    if (personImg.getColorAt(x, y).getAlpha() > 0 &&
+                        otherImg.getColorAt(otherX, otherY).getAlpha() > 0) {
+                        return true;
+                    }
                 }
             }
         }
-        if (Greenfoot.isKeyDown("space") && onGround)
-        {
-            jump();
-        }
+        
+        return false;
     }
     
     private void jump()
     {
         vSpeed = jumpStrength;
         onGround = false;
-        setLocation(getX(), getY() + vSpeed);
     }
     
-    private void fall()
+    private void applyGravity()
     {
         // Apply gravity
         if (vSpeed < 9)
@@ -140,51 +344,45 @@ public class Person extends Actor
     // Check if touching platform with precise collision detection
     private boolean isTouchingPlatform()
     {
-        // First do a quick check with getIntersectingObjects
         java.util.List<Platform> platforms = getIntersectingObjects(Platform.class);
-        if (platforms.isEmpty())
+        if (!platforms.isEmpty())
         {
-            return false;
-        }
-        
-        // If intersecting, do pixel-perfect collision check
-        for (Platform platform : platforms)
-        {
-            if (pixelPerfectCollision(platform))
+            for (Platform platform : platforms)
             {
-                return true;
+                if (pixelPerfectCollision(platform.getImage(), platform))
+                {
+                    return true;
+                }
             }
         }
         
         return false;
     }
     
-    // Pixel-perfect collision detection
-    private boolean pixelPerfectCollision(Platform platform)
+    // Full pixel-perfect collision detection
+    private boolean pixelPerfectCollision(GreenfootImage otherImg, Actor other)
     {
         GreenfootImage personImg = getImage();
-        GreenfootImage platImg = platform.getImage();
         
-        int dx = getX() - platform.getX();
-        int dy = getY() - platform.getY();
+        int dx = getX() - other.getX();
+        int dy = getY() - other.getY();
         
         int personW = personImg.getWidth();
         int personH = personImg.getHeight();
-        int platW = platImg.getWidth();
-        int platH = platImg.getHeight();
+        int otherW = otherImg.getWidth();
+        int otherH = otherImg.getHeight();
         
-        // Check a sample of pixels (not all, for performance)
-        for (int x = 0; x < personW; x += 2)
+        for (int x = 0; x < personW; x++)
         {
-            for (int y = 0; y < personH; y += 2)
+            for (int y = 0; y < personH; y++)
             {
-                int platX = x - personW / 2 - dx + platW / 2;
-                int platY = y - personH / 2 - dy + platH / 2;
+                int otherX = x - personW / 2 - dx + otherW / 2;
+                int otherY = y - personH / 2 - dy + otherH / 2;
                 
-                if (platX >= 0 && platX < platW && platY >= 0 && platY < platH)
+                if (otherX >= 0 && otherX < otherW && otherY >= 0 && otherY < otherH)
                 {
                     if (personImg.getColorAt(x, y).getAlpha() > 0 &&
-                        platImg.getColorAt(platX, platY).getAlpha() > 0)
+                        otherImg.getColorAt(otherX, otherY).getAlpha() > 0)
                     {
                         return true;
                     }
@@ -195,39 +393,7 @@ public class Person extends Actor
         return false;
     }
     
-    // Check if there's a platform blocking horizontal movement
-    private boolean isBlockedHorizontally(int direction)
-    {
-        int height = getImage().getHeight();
-        int width = getImage().getWidth();
-        int checkDistance = width / 2 + 1;
-        
-        // Check left or right side at multiple heights
-        if (getOneObjectAtOffset(checkDistance * direction, 0, Platform.class) != null) return true;
-        if (getOneObjectAtOffset(checkDistance * direction, -height / 3, Platform.class) != null) return true;
-        if (getOneObjectAtOffset(checkDistance * direction, height / 3, Platform.class) != null) return true;
-        
-        return false;
-    }
-    
-    public void nextLevel()
-    {
-        if (getX() >= 749)
-        {
-            Greenfoot.setWorld(new easyLevel2());
-        }
-    }
-    
-    private void checkFallOff()
-    {
-        Platform platform = (Platform) getOneObjectAtOffset(0, 0, Platform.class);
-        if (platform == null && getY() > 350)
-        {
-            Greenfoot.setWorld(new MyWorld());
-        }
-    }
-    
-    public void collision()
+    private void checkSpikesAndTraps()
     {
         java.util.List<Spike> spikes = getIntersectingObjects(Spike.class);
         
@@ -251,12 +417,56 @@ public class Person extends Actor
                         if (personImg.getColorAt(x, y).getAlpha() > 0 &&
                             spikeImg.getColorAt(spikeX, spikeY).getAlpha() > 0)
                         {
-                            Greenfoot.setWorld(new MyWorld());
+                            Greenfoot.setWorld(new easyLevel1());
                             return;
                         }
                     }
                 }
             }
+        }
+    }
+    
+    private void checkFallOff()
+    {
+        if (getY() >= 399)
+        {
+            Greenfoot.setWorld(new easyLevel1());
+        }
+    }
+    
+    public void nextLevel()
+    {
+        if (getX() >= 740)
+        {
+            Greenfoot.setWorld(new easyLevel1());
+        }
+    }
+    
+    private void animate() {
+        delayCounter++;
+        if (delayCounter >= animationDelay) {
+            delayCounter = 0;
+            frameIndex++;
+            
+            GreenfootImage[] currentFrames;
+            
+            if (!onGround) {
+                currentFrames = jumpFrames;
+            } else if (isRunning) {
+                currentFrames = runFrames;
+            } else {
+                currentFrames = idleFrames;
+            }
+            
+            if (frameIndex >= currentFrames.length) {
+                frameIndex = 0;
+            }
+            
+            GreenfootImage img = new GreenfootImage(currentFrames[frameIndex]);
+            if (!facingRight) {
+                img.mirrorHorizontally();
+            }
+            setImage(img);
         }
     }
 }
