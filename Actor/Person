@@ -203,7 +203,8 @@ public class Person extends Actor
     int speed = onGround ? moveSpeed : airSpeed;
 
     // If world is mediumLevel1 → reverse controls
-    if (getWorld() instanceof mediumLevel1 || getWorld() instanceof mediumLevel5) {
+    if (getWorld() instanceof mediumLevel1 || 
+    getWorld() instanceof mediumLevel5 || getWorld() instanceof ohardLevel3) {
         // REVERSED CONTROLS
         if (Greenfoot.isKeyDown("a")) { // A goes RIGHT
             facingRight = true;
