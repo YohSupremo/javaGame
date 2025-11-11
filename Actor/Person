@@ -55,9 +55,44 @@ public class Person extends Actor
         ensureFullyOutsidePlatforms(); // Check BEFORE gravity to catch corner penetration
         applyGravity();
         checkSpikesAndTraps();
+        checkShurikenCollision(); // NEW: Check for shuriken collisions
         checkFallOff();
         nextLevel();
         animate();
+    }
+    
+    // NEW METHOD: Check for pixel-perfect collision with shurikens
+    private void checkShurikenCollision()
+    {
+        java.util.List<Shuriken> shurikens = getIntersectingObjects(Shuriken.class);
+        
+        for (Shuriken shuriken : shurikens)
+        {
+            GreenfootImage shurikenImg = shuriken.getImage();
+            GreenfootImage personImg = getImage();
+            int dx = getX() - shuriken.getX();
+            int dy = getY() - shuriken.getY();
+            
+            for (int x = 0; x < personImg.getWidth(); x++)
+            {
+                for (int y = 0; y < personImg.getHeight(); y++)
+                {
+                    int shurikenX = x - personImg.getWidth() / 2 - dx + shurikenImg.getWidth() / 2;
+                    int shurikenY = y - personImg.getHeight() / 2 - dy + shurikenImg.getHeight() / 2;
+                    
+                    if (shurikenX >= 0 && shurikenX < shurikenImg.getWidth() &&
+                        shurikenY >= 0 && shurikenY < shurikenImg.getHeight())
+                    {
+                        if (personImg.getColorAt(x, y).getAlpha() > 0 &&
+                            shurikenImg.getColorAt(shurikenX, shurikenY).getAlpha() > 0)
+                        {
+                            Greenfoot.setWorld(new easyLevel1());
+                            return;
+                        }
+                    }
+                }
+            }
+        }
     }
     
     // NEW METHOD: Ensures player is fully outside all platforms (prevents corner penetration)
@@ -435,13 +470,111 @@ public class Person extends Actor
         }
     }
     
-    public void nextLevel()
+     public void nextLevel()
+{
+    World currentWorld = getWorld();
+    
+    // Check for easy level portals
+    if (getOneIntersectingObject(easyPortal.class) != null)
     {
-        if (getX() >= 740)
-        {
-            Greenfoot.setWorld(new easyLevel1());
+        if (currentWorld instanceof easyLevel1) {
+            LevelProgress.completeEasyLevel(1);
+            Greenfoot.setWorld(new easyLevel2());
+        }
+        else if (currentWorld instanceof easyLevel2) {
+            LevelProgress.completeEasyLevel(2);
+            Greenfoot.setWorld(new easyLevel3());
+        }
+        else if (currentWorld instanceof easyLevel3) {
+            LevelProgress.completeEasyLevel(3);
+            Greenfoot.setWorld(new easyLevel4());
+        }
+        else if (currentWorld instanceof easyLevel4) {
+            LevelProgress.completeEasyLevel(4);
+            Greenfoot.setWorld(new easyLevel5());
+        }
+        else if (currentWorld instanceof easyLevel5) {
+            LevelProgress.completeEasyLevel(5);
+            Greenfoot.setWorld(new categoryEasy());
         }
     }
+    
+    // Check for medium level portals
+    else if (getOneIntersectingObject(mediumPortal.class) != null)
+    {
+        if (currentWorld instanceof mediumLevel1) {
+            LevelProgress.completeMediumLevel(1);
+            Greenfoot.setWorld(new mediumLevel2());
+        }
+        else if (currentWorld instanceof mediumLevel2) {
+            LevelProgress.completeMediumLevel(2);
+            Greenfoot.setWorld(new mediumLevel3());
+        }
+        else if (currentWorld instanceof mediumLevel3) {
+            LevelProgress.completeMediumLevel(3);
+            Greenfoot.setWorld(new mediumLevel4());
+        }
+        else if (currentWorld instanceof mediumLevel4) {
+            LevelProgress.completeMediumLevel(4);
+            Greenfoot.setWorld(new mediumLevel5());
+        }
+        else if (currentWorld instanceof mediumLevel5) {
+            LevelProgress.completeMediumLevel(5);
+            Greenfoot.setWorld(new categoryMedium());
+        }
+    }
+    
+    // Check for hard level portals
+    else if (getOneIntersectingObject(hardPortal.class) != null)
+    {
+        if (currentWorld instanceof ohardLevel1) {
+            LevelProgress.completeHardLevel(1);
+            Greenfoot.setWorld(new ohardLevel2());
+        }
+        else if (currentWorld instanceof ohardLevel2) {
+            LevelProgress.completeHardLevel(2);
+            Greenfoot.setWorld(new ohardLevel3());
+        }
+        else if (currentWorld instanceof ohardLevel3) {
+            LevelProgress.completeHardLevel(3);
+            Greenfoot.setWorld(new ohardLevel4());
+        }
+        else if (currentWorld instanceof ohardLevel4) {
+            LevelProgress.completeHardLevel(4);
+            Greenfoot.setWorld(new ohardLevel5());
+        }
+        else if (currentWorld instanceof ohardLevel5) {
+            LevelProgress.completeHardLevel(5);
+            Greenfoot.setWorld(new categoryHard());
+        }
+    }
+    
+    // Check for advance level portals
+    else if (getOneIntersectingObject(advPortal.class) != null)
+    {
+        if (currentWorld instanceof pAdvLevel1) {
+            LevelProgress.completeAdvLevel(1);
+            Greenfoot.setWorld(new pAdvLevel2());
+        }
+        else if (currentWorld instanceof pAdvLevel2) {
+            LevelProgress.completeAdvLevel(2);
+            Greenfoot.setWorld(new pAdvLevel3());
+        }
+        else if (currentWorld instanceof pAdvLevel3) {
+            LevelProgress.completeAdvLevel(3);
+            Greenfoot.setWorld(new pAdvLevel4());
+        }
+        else if (currentWorld instanceof pAdvLevel4) {
+            LevelProgress.completeAdvLevel(4);
+            Greenfoot.setWorld(new pAdvLevel5());
+        }
+        else if (currentWorld instanceof pAdvLevel5) {
+            LevelProgress.completeAdvLevel(5);
+            Greenfoot.setWorld(new categoryAdvance());
+        }
+    }
+}
+    
     
     private void animate() {
         delayCounter++;
