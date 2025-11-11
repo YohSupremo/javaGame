@@ -36,6 +36,8 @@ public class pAdvLevel2 extends World {
     public void prepare() {
         Person player1 = new Person();
         addObject(player1, 30, 180);
+         advPortal adv = new advPortal(5);
+        addObject(adv, 70, 314);
         Platform p1 = new Platform(320, 80);
         addObject(p1, 10, 240);
         Platform p2 = new Platform(40, 10);
@@ -66,6 +68,7 @@ public class pAdvLevel2 extends World {
         addObject(p7, 720, 120);
         FakeAdvPortal fp1 = new FakeAdvPortal();
         addObject(fp1, 720, 165);
+       
     }
 
     public void act() {
@@ -216,6 +219,10 @@ public class pAdvLevel2 extends World {
         if (sp4State == SpikeState.APPEAR && playerX <= 605) {
             removeObject(sp4);
         }
+        
+         if(playerX <= 147 && playerY >= 331){
+            removeObject(pt1);
+        }
     }
 
     // ✅ Detect touching FakeAdvPortal safely
@@ -284,6 +291,6 @@ public class pAdvLevel2 extends World {
             addObject(p4Dis, 530, 120);
         }
 
-        
+       
     }
 }
